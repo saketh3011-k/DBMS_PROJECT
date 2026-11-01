@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Leave & OD Approvals — Faculty Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold text-dark mb-0">Leave & On-Duty (OD) Approvals</h4>
+        <small class="text-secondary">Review student absence justifications and regularize attendance records.</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('faculty.leave_requests', status='Pending') }}" class="btn btn-sm {% if selected_status == 'Pending' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            Pending Only
+        </a>
+        <a href="{{ url_for('faculty.leave_requests', status='all') }}" class="btn btn-sm {% if selected_status == 'all' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            All Records
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Student Leave Applications</span>
+        <span class="badge bg-light text-muted border">{{ requests|length }} application(s)</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Date of Absence</th>
+                        <th>Student</th>
+                        <th>Course</th>
+                        <th>Leave Type</th>
+                        <th>Reason / Justification</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in requests %}
+                    <tr>
+                        <td><span class="text-muted fw-semibold">{{ r.leave_date }}</span></td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ r.student_name }}</div>
+                            <small class="text-muted">{{ r.student_id }} &bull; {{ r.department }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ r.course_id }}</span>
+                            <div class="small text-secondary">{{ r.course_name }}</div>
+                        </td>
+                        <td><span class="badge bg-purple-soft">{{ r.leave_type }}</span></td>
+                        <td><small class="text-secondary">{{ r.reason }}</small></td>
+                        <td>
+                            {% if r.status == 'Approved' %}
+                                <span class="badge bg-success-soft"><i class="bi bi-check-circle me-1"></i>Approved</span>
+                            {% elif r.status == 'Rejected' %}
+                                <span class="badge bg-danger-soft"><i class="bi bi-x-circle me-1"></i>Rejected</span>
+                            {% else %}
+                                <span class="badge bg-warning-soft"><i class="bi bi-hourglass-split me-1"></i>Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if r.status == 'Pending' %}
+                                <button class="btn btn-sm btn-outline-success py-1 px-2 me-1" data-bs-toggle="modal" data-bs-target="#actionModal{{ r.request_id }}" onclick="setAction('Approved')">
+                                    <i class="bi bi-check"></i> Approve
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger py-1 px-2" data-bs-toggle="modal" data-bs-target="#actionModal{{ r.request_id }}" onclick="setAction('Rejected')">
+                                    <i class="bi bi-x"></i> Reject
+                                </button>
+                            {% else %}
+                                <small class="text-muted">{{ r.faculty_remarks or 'Done' }}</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                    <!-- Action Modal -->
+                    <div class="modal fade" id="actionModal{{ r.request_id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content text-start">
+                                <form action="{{ url_for('faculty.handle_leave_action', rid=r.request_id) }}" method="POST">
+                                    <div class="modal-header">
+                                        <h6 class="modal-title fw-bold">Review Leave Request: {{ r.student_name }}</h6>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p class="small text-muted mb-3">
+                                            <strong>{{ r.student_id }}</strong> requested <strong>{{ r.leave_type }}</strong> for <strong>{{ r.course_id }}</strong> on <strong>{{ r.leave_date }}</strong>.<br>
+                                            <em>Reason: {{ r.reason }}</em>
+                                        </p>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Decision *</label>
+                                            <select name="action" class="form-select" required>
+                                                <option value="Approved">Approve (Automatically updates attendance to Present)</option>
+                                                <option value="Rejected">Reject (Retains marked absence)</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Feedback / Remarks</label>
+                                            <input type="text" name="remarks" class="form-control" placeholder="e.g. Valid medical proof provided / Unjustified absence...">
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-primary btn-sm">Confirm Decision</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">No leave requests found for this filter.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

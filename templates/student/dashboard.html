@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Student Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold text-dark mb-0">{{ student.student_name }}</h4>
+        <small class="text-secondary">{{ student.student_id }} &bull; {{ student.department }}</small>
+    </div>
+    <a href="{{ url_for('student.history') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-clock-history me-1"></i> Attendance Log
+    </a>
+</div>
+
+<!-- Minimal Low Attendance Warning (< 75%) -->
+{% if warning_courses %}
+<div class="warning-alert-banner mb-4">
+    <div class="d-flex align-items-start">
+        <i class="bi bi-exclamation-circle text-danger fs-5 me-2 mt-1"></i>
+        <div>
+            <div class="fw-bold text-danger mb-1">Attendance Below 75% Requirement</div>
+            <p class="mb-2 small text-dark">
+                You have low attendance in <strong>{{ warning_courses|length }} subject(s)</strong>. To be eligible for final examinations, attend the calculated consecutive classes:
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+                {% for w in warning_courses %}
+                <span class="badge bg-danger-soft py-1 px-2">
+                    {{ w.course_id }}: {{ w.percentage_clean }}% &bull; Attend next <strong>{{ w.classes_needed }} class(es)</strong>
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Minimal Metrics Row -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-sm-6">
+        <div class="metric-card">
+            <div class="metric-label">Overall Attendance</div>
+            <div class="metric-value {% if overall_pct >= 75 %}text-success{% else %}text-danger{% endif %}">
+                {{ overall_pct }}%
+            </div>
+            <div class="metric-sub">Cumulative average</div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-sm-6">
+        <div class="metric-card">
+            <div class="metric-label">Classes Attended</div>
+            <div class="metric-value text-success">{{ total_attended }}</div>
+            <div class="metric-sub">Lectures present</div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-sm-6">
+        <div class="metric-card">
+            <div class="metric-label">Total Conducted</div>
+            <div class="metric-value">{{ total_conducted }}</div>
+            <div class="metric-sub">Class sessions held</div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-sm-6">
+        <div class="metric-card">
+            <div class="metric-label">Registered Subjects</div>
+            <div class="metric-value">{{ courses|length }}</div>
+            <div class="metric-sub">Active curriculum</div>
+        </div>
+    </div>
+</div>
+
+<!-- Subject Attendance Cards -->
+<div class="mb-3 d-flex justify-content-between align-items-center">
+    <span class="fw-semibold text-dark small text-uppercase" style="letter-spacing: 0.04em;">Subject Performance</span>
+    <span class="text-muted small">Minimum required: 75%</span>
+</div>
+
+<div class="row g-3 mb-4">
+    {% for c in courses %}
+    <div class="col-md-6">
+        <div class="card h-100 p-3">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <span class="badge bg-light text-dark border">{{ c.course_id }}</span>
+                    <h6 class="fw-bold text-dark mt-2 mb-0">{{ c.course_name }}</h6>
+                    <small class="text-muted">{{ c.faculty_name or 'Faculty Assigned' }}</small>
+                </div>
+                <div class="text-end">
+                    <span class="fs-4 fw-bold {% if (c.percentage_clean or 0) >= 75 %}text-success{% else %}text-danger{% endif %}">
+                        {{ c.percentage_clean or 0 }}%
+                    </span>
+                </div>
+            </div>
+
+            <!-- Minimal Progress Bar -->
+            <div class="progress my-2" style="height: 5px;">
+                <div class="progress-bar {% if (c.percentage_clean or 0) >= 75 %}bg-success{% else %}bg-danger{% endif %}" 
+                     role="progressbar" style="width: {{ c.percentage_clean or 0 }}%;"></div>
+            </div>
+
+            <div class="d-flex justify-content-between text-muted small mt-2 pt-2 border-top">
+                <span>Attended: <strong class="text-success">{{ c.attended_classes or 0 }}</strong></span>
+                <span>Absent: <strong class="text-danger">{{ c.absent_classes or 0 }}</strong></span>
+                <span>Total: <strong class="text-dark">{{ c.total_classes or 0 }}</strong></span>
+            </div>
+
+            {% if (c.percentage_clean or 0) < 75 %}
+            <div class="alert alert-danger py-1 px-2 mt-2 mb-0 small" style="font-size: 0.76rem;">
+                <i class="bi bi-exclamation-circle me-1"></i> Deficit: attend next <strong>{{ c.classes_needed }} class(es)</strong> to reach 75%.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Recent Attendance Entries -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Recent Session Logs</span>
+        <a href="{{ url_for('student.history') }}" class="small text-decoration-none">Full History &rarr;</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Course</th>
+                        <th>Status</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in recent_records %}
+                    <tr>
+                        <td><span class="text-muted">{{ r.date }}</span></td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ r.course_id }}</span>
+                            <span class="ms-1 small">{{ r.course_name }}</span>
+                        </td>
+                        <td>
+                            {% if r.status == 'Present' %}
+                                <span class="badge bg-success-soft"><i class="bi bi-check-circle me-1"></i>Present</span>
+                            {% else %}
+                                <span class="badge bg-danger-soft"><i class="bi bi-x-circle me-1"></i>Absent</span>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-muted">{{ r.remarks or 'Regular' }}</small></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-muted">No attendance logs found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}All Attendance Records - Student Attendance Management System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-1">Attendance Master Log</h3>
+        <p class="text-secondary mb-0">System-wide attendance audit trail with multi-parameter filtering.</p>
+    </div>
+    <span class="badge bg-secondary fs-6">{{ records|length }} Records Displayed</span>
+</div>
+
+<!-- Filters Card -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body p-3">
+        <form method="GET" action="{{ url_for('admin.attendance') }}" class="row g-2 align-items-center">
+            <div class="col-md-3">
+                <label class="form-label small text-muted mb-1">Filter by Course</label>
+                <select name="course_id" class="form-select form-select-sm">
+                    <option value="">All Courses</option>
+                    {% for c in courses %}
+                        <option value="{{ c.course_id }}" {% if selected_course == c.course_id %}selected{% endif %}>
+                            {{ c.course_id }} - {{ c.course_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted mb-1">Search Student</label>
+                <input type="text" name="student_id" class="form-control form-control-sm" placeholder="Reg No. or Name..." value="{{ student_search }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Date</label>
+                <input type="date" name="date" class="form-control form-control-sm" value="{{ selected_date }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    <option value="Present" {% if selected_status == 'Present' %}selected{% endif %}>Present</option>
+                    <option value="Absent" {% if selected_status == 'Absent' %}selected{% endif %}>Absent</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end gap-1 mt-3 mt-md-0">
+                <button type="submit" class="btn btn-secondary btn-sm w-100"><i class="bi bi-funnel"></i> Filter</button>
+                {% if selected_course or student_search or selected_date or selected_status %}
+                    <a href="{{ url_for('admin.attendance') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Attendance Table -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Date</th>
+                        <th>Student Reg. No.</th>
+                        <th>Student Name</th>
+                        <th>Course</th>
+                        <th>Status</th>
+                        <th>Remarks</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in records %}
+                    <tr>
+                        <td><small class="text-muted">#{{ r.attendance_id }}</small></td>
+                        <td><span class="badge bg-light text-dark border"><i class="bi bi-calendar3 me-1"></i>{{ r.date }}</span></td>
+                        <td><span class="fw-bold text-primary">{{ r.student_id }}</span></td>
+                        <td>{{ r.student_name }}</td>
+                        <td><span class="badge bg-warning-soft text-dark">{{ r.course_id }}</span> {{ r.course_name }}</td>
+                        <td>
+                            {% if r.status == 'Present' %}
+                                <span class="badge bg-success-soft text-success"><i class="bi bi-check-circle me-1"></i>Present</span>
+                            {% else %}
+                                <span class="badge bg-danger-soft text-danger"><i class="bi bi-x-circle me-1"></i>Absent</span>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-secondary">{{ r.remarks or 'Regular' }}</small></td>
+                        <td class="text-end">
+                            <form action="{{ url_for('admin.delete_attendance', attendance_id=r.attendance_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this attendance entry?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete record">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">No attendance entries found for the selected criteria.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Apply Leave / On Duty (OD) — Student Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold text-dark mb-0">Leave & On-Duty (OD) Regularization</h4>
+        <small class="text-secondary">Submit medical leave, academic event on-duty (OD), or personal leave for faculty approval.</small>
+    </div>
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newLeaveModal">
+        <i class="bi bi-plus-circle me-1"></i> New Leave Application
+    </button>
+</div>
+
+<!-- Past Requests Card -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Application History</span>
+        <span class="badge bg-light text-muted border">{{ requests|length }} request(s)</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Date of Absence</th>
+                        <th>Course</th>
+                        <th>Faculty</th>
+                        <th>Leave Type</th>
+                        <th>Reason Given</th>
+                        <th>Status</th>
+                        <th>Faculty Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in requests %}
+                    <tr>
+                        <td><span class="text-muted fw-semibold">{{ r.leave_date }}</span></td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ r.course_id }}</span>
+                            <span class="ms-1 small">{{ r.course_name }}</span>
+                        </td>
+                        <td><small class="text-secondary">{{ r.faculty_name or 'Faculty Assigned' }}</small></td>
+                        <td><span class="badge bg-purple-soft">{{ r.leave_type }}</span></td>
+                        <td><small class="text-muted">{{ r.reason }}</small></td>
+                        <td>
+                            {% if r.status == 'Approved' %}
+                                <span class="badge bg-success-soft"><i class="bi bi-check-circle me-1"></i>Approved</span>
+                            {% elif r.status == 'Rejected' %}
+                                <span class="badge bg-danger-soft"><i class="bi bi-x-circle me-1"></i>Rejected</span>
+                            {% else %}
+                                <span class="badge bg-warning-soft"><i class="bi bi-hourglass-split me-1"></i>Pending</span>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-muted">{{ r.faculty_remarks or '—' }}</small></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">No leave or OD applications submitted yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Submit New Leave Modal -->
+<div class="modal fade" id="newLeaveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('student.apply_leave') }}" method="POST">
+                <div class="modal-header">
+                    <h6 class="modal-title fw-bold">Apply for Leave or On-Duty (OD)</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Subject / Course *</label>
+                        <select name="course_id" class="form-select" required>
+                            <option value="">-- Choose Course --</option>
+                            {% for c in courses %}
+                                <option value="{{ c.course_id }}">{{ c.course_id }} — {{ c.course_name }} ({{ c.faculty_name }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Date of Absence *</label>
+                        <input type="date" name="leave_date" class="form-control" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Leave Category *</label>
+                        <select name="leave_type" class="form-select" required>
+                            <option value="Medical Leave">Medical Leave (Illness / Hospitalization)</option>
+                            <option value="On Duty (OD)">On Duty (OD — Hackathon / Symposium / Project)</option>
+                            <option value="Academic Event">Academic Event (Olympiad / Paper Presentation)</option>
+                            <option value="Personal Leave">Personal Leave (Family emergency)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Detailed Reason *</label>
+                        <textarea name="reason" rows="3" class="form-control" placeholder="Provide justification or reference details..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Submit Application</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Faculty Overview - Student Attendance Management System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold text-dark mb-0">{{ faculty.faculty_name }}</h4>
+        <small class="text-secondary">{{ faculty.department }} &bull; {{ faculty.faculty_id }}</small>
+    </div>
+    <a href="{{ url_for('faculty.mark_attendance') }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-check2-square me-1"></i> Mark Attendance
+    </a>
+</div>
+
+<!-- Minimal Metrics Row -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-label">Assigned Courses</div>
+            <div class="metric-value">{{ courses|length }}</div>
+            <div class="metric-sub">Active curriculum subjects</div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-label">Current Session Date</div>
+            <div class="metric-value" style="font-size: 1.4rem;">{{ today }}</div>
+            <div class="metric-sub">Today's academic timeline</div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-label">Low Attendance Students</div>
+            <div class="metric-value text-danger">{{ low_att_students|length }}</div>
+            <div class="metric-sub">Students below 75% threshold</div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-label">Pending Leave Requests</div>
+            <div class="metric-value {% if pending_leaves > 0 %}text-warning{% else %}text-muted{% endif %}">
+                {{ pending_leaves }}
+            </div>
+            <div class="metric-sub">
+                <a href="{{ url_for('faculty.leave_requests') }}" class="text-decoration-none">Review Requests &rarr;</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assigned Courses Table -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Assigned Teaching Courses</span>
+        <a href="{{ url_for('faculty.courses') }}" class="small text-decoration-none">Manage All &rarr;</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Course Code</th>
+                        <th>Course Title</th>
+                        <th>Credits</th>
+                        <th>Enrolled Students</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in courses %}
+                    <tr>
+                        <td><span class="badge bg-light text-dark border">{{ c.course_id }}</span></td>
+                        <td class="fw-semibold">{{ c.course_name }}</td>
+                        <td><small class="text-muted">{{ c.credits }} credits</small></td>
+                        <td>
+                            <a href="{{ url_for('faculty.course_students', course_id=c.course_id) }}" class="small text-decoration-none">
+                                {{ c.enrolled_count }} enrolled students &rarr;
+                            </a>
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('faculty.mark_attendance', course_id=c.course_id) }}" class="btn btn-sm btn-primary py-1 px-2 me-1">
+                                <i class="bi bi-check2"></i> Mark
+                            </a>
+                            <a href="{{ url_for('faculty.reports', course_id=c.course_id) }}" class="btn btn-sm btn-outline-secondary py-1 px-2">
+                                Report
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">No courses assigned.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Low Attendance Warnings in Faculty's Courses -->
+{% if low_att_students %}
+<div class="card border-danger">
+    <div class="card-header bg-danger-soft text-danger d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-exclamation-triangle me-1"></i> Students Below 75% Attendance</span>
+        <small>{{ low_att_students|length }} student(s)</small>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Registration No.</th>
+                        <th>Student Name</th>
+                        <th>Course</th>
+                        <th>Held</th>
+                        <th>Attended</th>
+                        <th>Attendance %</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in low_att_students %}
+                    <tr>
+                        <td class="fw-semibold text-danger">{{ s.student_id }}</td>
+                        <td>{{ s.student_name }}</td>
+                        <td><span class="badge bg-light text-dark border">{{ s.course_id }}</span> {{ s.course_name }}</td>
+                        <td>{{ s.total }}</td>
+                        <td>{{ s.present }}</td>
+                        <td><span class="badge bg-danger-soft">{{ s.pct }}%</span></td>
+                        <td class="text-end">
+                            <form action="{{ url_for('faculty.send_warning') }}" method="POST" class="d-inline">
+                                <input type="hidden" name="student_id" value="{{ s.student_id }}">
+                                <input type="hidden" name="course_id" value="{{ s.course_id }}">
+                                <input type="hidden" name="pct" value="{{ s.pct }}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm py-1 px-2" title="Send Official Warning Notice">
+                                    <i class="bi bi-bell-fill me-1"></i> Issue Notice
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

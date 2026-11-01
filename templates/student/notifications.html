@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Notices & Notifications — Student Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold text-dark mb-0">Official Notices & Warnings</h4>
+        <small class="text-secondary">Academic alerts, low-attendance warnings, and approval confirmations.</small>
+    </div>
+</div>
+
+<div class="row g-3">
+    {% for n in notifications %}
+    <div class="col-12">
+        <div class="card p-3 {% if not n.is_read %}border-primary{% endif %}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        {% if n.type == 'danger' %}
+                            <span class="badge bg-danger-soft"><i class="bi bi-exclamation-triangle me-1"></i>Critical Notice</span>
+                        {% elif n.type == 'warning' %}
+                            <span class="badge bg-warning-soft"><i class="bi bi-exclamation-circle me-1"></i>Warning Alert</span>
+                        {% elif n.type == 'success' %}
+                            <span class="badge bg-success-soft"><i class="bi bi-check-circle me-1"></i>Approved</span>
+                        {% else %}
+                            <span class="badge bg-light text-muted border">Notice</span>
+                        {% endif %}
+
+                        <span class="fw-bold text-dark">{{ n.title }}</span>
+
+                        {% if not n.is_read %}
+                            <span class="badge bg-primary-soft text-primary" style="font-size: 0.65rem;">NEW</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-secondary small mb-1 mt-2">{{ n.message }}</p>
+                    <small class="text-muted" style="font-size: 0.72rem;">{{ n.created_at }}</small>
+                </div>
+
+                {% if not n.is_read %}
+                <form action="{{ url_for('student.mark_notification_read', nid=n.notification_id) }}" method="POST">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;">
+                        <i class="bi bi-check2"></i> Mark Read
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="card p-4 text-center text-muted">
+            <i class="bi bi-bell-slash fs-3 mb-2"></i>
+            <div>No notices at this time. All caught up!</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

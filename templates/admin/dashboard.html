@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Overview - Student Attendance Management System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold text-dark mb-0">Overview</h4>
+        <small class="text-secondary">Centralized attendance oversight and institutional metrics</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('reports.index', type='low_attendance') }}" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-exclamation-triangle me-1"></i> Low Attendance ({{ low_attendance_count }})
+        </a>
+        <a href="{{ url_for('admin.attendance') }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-calendar-check me-1"></i> All Records
+        </a>
+    </div>
+</div>
+
+<!-- Minimal Metric Cards Row -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-sm-6">
+        <div class="metric-card">
+            <div class="metric-label">Total Students</div>
+            <div class="metric-value">{{ student_count }}</div>
+            <div class="metric-sub"><span class="text-success"><i class="bi bi-dot"></i>Active</span> enrolled students</div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-sm-6">
+        <div class="metric-card">
+            <div class="metric-label">Faculty Members</div>
+            <div class="metric-value">{{ faculty_count }}</div>
+            <div class="metric-sub">Instructors across departments</div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-sm-6">
+        <div class="metric-card">
+            <div class="metric-label">Active Courses</div>
+            <div class="metric-value">{{ course_count }}</div>
+            <div class="metric-sub">Curriculum offerings</div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-sm-6">
+        <div class="metric-card">
+            <div class="metric-label">Overall Attendance</div>
+            <div class="metric-value {% if overall_pct >= 75 %}text-success{% else %}text-danger{% endif %}">
+                {{ overall_pct }}%
+            </div>
+            <div class="metric-sub">{{ attendance_count }} total entries recorded</div>
+        </div>
+    </div>
+</div>
+
+<!-- Minimal Charts Row -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Course Attendance Distribution</span>
+                <small class="text-muted">Present vs Absent</small>
+            </div>
+            <div class="card-body">
+                <canvas id="courseBarChart" height="110"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <span>Overall Ratio</span>
+            </div>
+            <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                <div style="max-height: 200px; width: 100%;">
+                    <canvas id="attendanceDoughnutChart"></canvas>
+                </div>
+                <div class="mt-3 text-center small text-muted">
+                    <span class="badge bg-success-soft me-2">Present: {{ total_present }}</span>
+                    <span class="badge bg-danger-soft">Absent: {{ total_absent }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Attendance Minimal Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Recent Attendance Entries</span>
+        <a href="{{ url_for('admin.attendance') }}" class="small text-decoration-none">View All &rarr;</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Student</th>
+                        <th>Course</th>
+                        <th>Status</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in recent_attendance %}
+                    <tr>
+                        <td><span class="text-muted">{{ row.date }}</span></td>
+                        <td>
+                            <div class="fw-semibold">{{ row.student_name }}</div>
+                            <small class="text-muted">{{ row.student_id }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ row.course_id }}</span>
+                            <span class="ms-1 small">{{ row.course_name }}</span>
+                        </td>
+                        <td>
+                            {% if row.status == 'Present' %}
+                                <span class="badge bg-success-soft"><i class="bi bi-check-circle me-1"></i>Present</span>
+                            {% else %}
+                                <span class="badge bg-danger-soft"><i class="bi bi-x-circle me-1"></i>Absent</span>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-muted">{{ row.remarks or 'Regular' }}</small></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">No attendance activity recorded yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Clean Minimal Chart.js styling
+    const courseLabels = [{% for c in course_stats %}'{{ c.course_id }}',{% endfor %}];
+    const presentData = [{% for c in course_stats %}{{ c.present_count or 0 }},{% endfor %}];
+    const absentData = [{% for c in course_stats %}{{ (c.total_marked or 0) - (c.present_count or 0) }},{% endfor %}];
+
+    const ctxBar = document.getElementById('courseBarChart').getContext('2d');
+    new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+            labels: courseLabels,
+            datasets: [
+                {
+                    label: 'Present',
+                    data: presentData,
+                    backgroundColor: '#059669',
+                    borderRadius: 4
+                },
+                {
+                    label: 'Absent',
+                    data: absentData,
+                    backgroundColor: '#e11d48',
+                    borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top', labels: { boxWidth: 12, font: { size: 12 } } }
+            },
+            scales: {
+                x: { stacked: true, grid: { display: false } },
+                y: { stacked: true, beginAtZero: true, grid: { color: '#f1f5f9' } }
+            }
+        }
+    });
+
+    const ctxDoughnut = document.getElementById('attendanceDoughnutChart').getContext('2d');
+    new Chart(ctxDoughnut, {
+        type: 'doughnut',
+        data: {
+            labels: ['Present', 'Absent'],
+            datasets: [{
+                data: [{{ total_present }}, {{ total_absent }}],
+                backgroundColor: ['#059669', '#e11d48'],
+                borderWidth: 0,
+                hoverOffset: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } }
+            },
+            cutout: '72%'
+        }
+    });
+</script>
+{% endblock %}

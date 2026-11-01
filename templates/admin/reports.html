@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+
+{% block title %}Reports & Analytics - Student Attendance Management System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-1">Reports & Academic Analytics</h3>
+        <p class="text-secondary mb-0">Generate relational database reports, attendance analysis, and export data.</p>
+    </div>
+    {% if report_type in ['low_attendance', 'course_wise'] %}
+    <a href="{{ url_for('reports.export_csv', type=report_type) }}" class="btn btn-outline-success shadow-sm">
+        <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i> Export to CSV
+    </a>
+    {% endif %}
+</div>
+
+<!-- Report Navigation Tabs -->
+<ul class="nav nav-pills mb-4 gap-2 bg-white p-2 rounded shadow-sm">
+    <li class="nav-item">
+        <a class="nav-link {% if report_type == 'overall' %}active{% endif %}" href="{{ url_for('reports.index', type='overall') }}">
+            <i class="bi bi-pie-chart me-1"></i> Overall Summary
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if report_type == 'low_attendance' %}active bg-danger text-white{% endif %}" href="{{ url_for('reports.index', type='low_attendance') }}">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i> Low Attendance (< 75%)
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if report_type == 'student_wise' %}active{% endif %}" href="{{ url_for('reports.index', type='student_wise') }}">
+            <i class="bi bi-person-lines-fill me-1"></i> Student-wise
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if report_type == 'course_wise' %}active{% endif %}" href="{{ url_for('reports.index', type='course_wise') }}">
+            <i class="bi bi-journal-bookmark me-1"></i> Course-wise
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if report_type == 'faculty_wise' %}active{% endif %}" href="{{ url_for('reports.index', type='faculty_wise') }}">
+            <i class="bi bi-person-badge me-1"></i> Faculty-wise
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if report_type == 'date_wise' %}active{% endif %}" href="{{ url_for('reports.index', type='date_wise') }}">
+            <i class="bi bi-calendar3 me-1"></i> Date-wise
+        </a>
+    </li>
+</ul>
+
+<!-- 1. OVERALL REPORT -->
+{% if report_type == 'overall' %}
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card p-3 shadow-sm text-center">
+            <span class="text-secondary small fw-semibold text-uppercase">Total Attendance Records</span>
+            <h2 class="fw-bold my-2 text-dark">{{ data.summary.total_entries or 0 }}</h2>
+            <span class="text-muted small">Recorded entries</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 shadow-sm text-center">
+            <span class="text-secondary small fw-semibold text-uppercase">Present Sessions</span>
+            <h2 class="fw-bold my-2 text-success">{{ data.summary.present_count or 0 }}</h2>
+            <span class="text-success small">Attended classes</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 shadow-sm text-center">
+            <span class="text-secondary small fw-semibold text-uppercase">Absent Sessions</span>
+            <h2 class="fw-bold my-2 text-danger">{{ data.summary.absent_count or 0 }}</h2>
+            <span class="text-danger small">Missed classes</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 shadow-sm text-center">
+            <span class="text-secondary small fw-semibold text-uppercase">Overall Attendance %</span>
+            <h2 class="fw-bold my-2 text-primary">{{ data.summary.overall_pct or 0 }}%</h2>
+            <span class="text-muted small">Institution average</span>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white fw-bold">Course-wise Breakdown</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Course Code</th>
+                        <th>Course Name</th>
+                        <th>Total Logged</th>
+                        <th>Present Count</th>
+                        <th>Attendance %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in data.by_course %}
+                    <tr>
+                        <td><span class="badge bg-warning-soft text-dark fw-bold">{{ c.course_id }}</span></td>
+                        <td class="fw-semibold">{{ c.course_name }}</td>
+                        <td>{{ c.total }}</td>
+                        <td class="text-success fw-bold">{{ c.present }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <span class="fw-bold me-2">{{ c.pct or 0 }}%</span>
+                                <div class="progress flex-grow-1" style="height: 6px;">
+                                    <div class="progress-bar {% if (c.pct or 0) >= 75 %}bg-success{% else %}bg-danger{% endif %}" 
+                                         style="width: {{ c.pct or 0 }}%;"></div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 2. LOW ATTENDANCE REPORT (< 75%) -->
+{% elif report_type == 'low_attendance' %}
+<div class="alert alert-danger d-flex align-items-center mb-4 shadow-sm" role="alert">
+    <i class="bi bi-exclamation-triangle-fill fs-3 me-3"></i>
+    <div>
+        <h5 class="alert-heading fw-bold mb-1">Academic Attendance Warning: Below 75% Requirement</h5>
+        <span>The following students have attendance strictly below the mandatory 75% threshold in one or more enrolled subjects.</span>
+    </div>
+</div>
+
+<div class="card shadow-sm border-danger">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-danger">
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Student Name</th>
+                        <th>Course</th>
+                        <th>Instructor</th>
+                        <th>Total Held</th>
+                        <th>Attended</th>
+                        <th>Attendance %</th>
+                        <th>Deficit / Needed for 75%</th>
+                        <th>Contact</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in data.rows %}
+                    <tr>
+                        <td><span class="badge bg-danger-soft text-danger fs-6">{{ r.student_id }}</span></td>
+                        <td class="fw-bold">{{ r.student_name }}</td>
+                        <td><span class="badge bg-warning-soft text-dark">{{ r.course_id }}</span> {{ r.course_name }}</td>
+                        <td><small>{{ r.faculty_name or 'Unassigned' }}</small></td>
+                        <td>{{ r.total_classes }}</td>
+                        <td class="text-success fw-bold">{{ r.classes_attended }}</td>
+                        <td>
+                            <span class="badge bg-danger text-white fw-bold">{{ r.attendance_pct }}%</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-warning text-dark fw-bold">
+                                +{{ r.classes_needed_for_75 }} class(es)
+                            </span>
+                        </td>
+                        <td>
+                            <small class="d-block">{{ r.email }}</small>
+                            <small class="text-muted">{{ r.phone or '-' }}</small>
+                        </td>
+                        <td class="text-end">
+                            <form action="{{ url_for('reports.send_warning') }}" method="POST" class="d-inline">
+                                <input type="hidden" name="student_id" value="{{ r.student_id }}">
+                                <input type="hidden" name="course_id" value="{{ r.course_id }}">
+                                <input type="hidden" name="pct" value="{{ r.attendance_pct }}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm py-1 px-2" title="Dispatch Formal Notice">
+                                    <i class="bi bi-bell-fill me-1"></i> Issue Notice
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center py-4 text-success fw-semibold">
+                            <i class="bi bi-check-circle fs-3 d-block mb-1"></i> Great! No students currently have attendance below 75%.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 3. STUDENT-WISE REPORT -->
+{% elif report_type == 'student_wise' %}
+<div class="card mb-4 shadow-sm">
+    <div class="card-body p-3">
+        <form method="GET" action="{{ url_for('reports.index') }}" class="row g-2 align-items-center">
+            <input type="hidden" name="type" value="student_wise">
+            <div class="col-md-9">
+                <input type="text" name="search" class="form-control" placeholder="Search by Registration Number or Student Name..." value="{{ data.search }}">
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-secondary w-100"><i class="bi bi-search"></i> Search</button>
+                {% if data.search %}
+                    <a href="{{ url_for('reports.index', type='student_wise') }}" class="btn btn-outline-secondary">Reset</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Registration No.</th>
+                        <th>Student Name</th>
+                        <th>Course Code</th>
+                        <th>Course Name</th>
+                        <th>Total Classes</th>
+                        <th>Attended</th>
+                        <th>Absent</th>
+                        <th>Attendance %</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in data.rows %}
+                    <tr>
+                        <td><span class="fw-bold text-primary">{{ r.student_id }}</span></td>
+                        <td>{{ r.student_name }}</td>
+                        <td><span class="badge bg-warning-soft text-dark">{{ r.course_id }}</span></td>
+                        <td>{{ r.course_name }}</td>
+                        <td>{{ r.total_classes }}</td>
+                        <td class="text-success fw-bold">{{ r.attended_classes }}</td>
+                        <td class="text-danger fw-bold">{{ r.absent_classes }}</td>
+                        <td><span class="fw-bold">{{ r.attendance_pct or 0 }}%</span></td>
+                        <td>
+                            {% if (r.attendance_pct or 0) >= 75 %}
+                                <span class="badge bg-success-soft text-success">Satisfactory</span>
+                            {% else %}
+                                <span class="badge bg-danger-soft text-danger">Low Attendance</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center py-4 text-muted">No student records found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 4. COURSE-WISE REPORT -->
+{% elif report_type == 'course_wise' %}
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Course ID</th>
+                        <th>Course Title</th>
+                        <th>Credits</th>
+                        <th>Faculty</th>
+                        <th>Classes Conducted</th>
+                        <th>Total Entries</th>
+                        <th>Present</th>
+                        <th>Absent</th>
+                        <th>Average Attendance %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in data.rows %}
+                    <tr>
+                        <td><span class="badge bg-warning-soft text-dark fw-bold fs-6">{{ c.course_id }}</span></td>
+                        <td class="fw-bold">{{ c.course_name }}</td>
+                        <td>{{ c.credits }}</td>
+                        <td>{{ c.faculty_name or 'Unassigned' }}</td>
+                        <td><span class="badge bg-light text-dark border">{{ c.classes_held }} dates</span></td>
+                        <td>{{ c.total_records }}</td>
+                        <td class="text-success fw-bold">{{ c.present_count }}</td>
+                        <td class="text-danger fw-bold">{{ c.absent_count }}</td>
+                        <td>
+                            <span class="badge {% if (c.attendance_pct or 0) >= 75 %}badge-attendance-high{% else %}badge-attendance-low{% endif %}">
+                                {{ c.attendance_pct or 0 }}%
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 5. FACULTY-WISE REPORT -->
+{% elif report_type == 'faculty_wise' %}
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Faculty ID</th>
+                        <th>Faculty Name</th>
+                        <th>Department</th>
+                        <th>Courses Taught</th>
+                        <th>Total Lecture Days</th>
+                        <th>Total Records Marked</th>
+                        <th>Present Records</th>
+                        <th>Average Attendance %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in data.rows %}
+                    <tr>
+                        <td><span class="badge bg-purple-soft text-dark fw-bold">{{ f.faculty_id }}</span></td>
+                        <td class="fw-bold">{{ f.faculty_name }}</td>
+                        <td>{{ f.department }}</td>
+                        <td><span class="badge bg-info text-dark">{{ f.courses_taught }}</span></td>
+                        <td>{{ f.lecture_days }}</td>
+                        <td>{{ f.total_marked }}</td>
+                        <td class="text-success fw-bold">{{ f.present_count }}</td>
+                        <td>
+                            <span class="badge {% if (f.average_pct or 0) >= 75 %}bg-success-soft text-success{% else %}bg-warning-soft text-warning{% endif %} fw-bold">
+                                {{ f.average_pct or 0 }}%
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 6. DATE-WISE REPORT -->
+{% elif report_type == 'date_wise' %}
+<div class="card mb-4 shadow-sm">
+    <div class="card-body p-3">
+        <form method="GET" action="{{ url_for('reports.index') }}" class="row g-2 align-items-center">
+            <input type="hidden" name="type" value="date_wise">
+            <div class="col-md-9">
+                <input type="date" name="date" class="form-control" value="{{ data.date_filter }}">
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-secondary w-100"><i class="bi bi-funnel"></i> Filter Date</button>
+                {% if data.date_filter %}
+                    <a href="{{ url_for('reports.index', type='date_wise') }}" class="btn btn-outline-secondary">Reset</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Courses Conducted</th>
+                        <th>Total Students Logged</th>
+                        <th>Present Count</th>
+                        <th>Absent Count</th>
+                        <th>Daily Attendance Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in data.rows %}
+                    <tr>
+                        <td><span class="badge bg-light text-dark border fs-6"><i class="bi bi-calendar3 me-1"></i>{{ d.date }}</span></td>
+                        <td><span class="badge bg-info text-dark">{{ d.courses_count }} Course(s)</span></td>
+                        <td>{{ d.total_marked }}</td>
+                        <td class="text-success fw-bold">{{ d.present_count }}</td>
+                        <td class="text-danger fw-bold">{{ d.absent_count }}</td>
+                        <td>
+                            <span class="badge {% if (d.pct or 0) >= 75 %}bg-success-soft text-success{% else %}bg-warning-soft text-warning{% endif %} fw-bold">
+                                {{ d.pct or 0 }}%
+                            </span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">No attendance activity found for this date.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

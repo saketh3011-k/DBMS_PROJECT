@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Course Attendance Report - Faculty Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-1">Course-Wise Attendance Report</h3>
+        <p class="text-secondary mb-0">Detailed student attendance metrics and low-attendance tracking for your course.</p>
+    </div>
+</div>
+
+<!-- Course Selector -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body p-3">
+        <form method="GET" action="{{ url_for('faculty.reports') }}" class="row g-2 align-items-center">
+            <div class="col-md-9">
+                <label class="form-label small text-muted mb-1">Select Course to Analyze</label>
+                <select name="course_id" class="form-select" onchange="this.form.submit()">
+                    {% for c in courses %}
+                        <option value="{{ c.course_id }}" {% if selected_course == c.course_id %}selected{% endif %}>
+                            {{ c.course_id }} - {{ c.course_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-secondary w-100"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if course_summary %}
+<!-- Summary Metric Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card p-3 shadow-sm text-center">
+            <span class="text-secondary small fw-semibold text-uppercase">Classes Conducted</span>
+            <h2 class="fw-bold my-2 text-dark">{{ course_summary.classes_held }}</h2>
+            <span class="text-muted small">Total lecture sessions</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 shadow-sm text-center">
+            <span class="text-secondary small fw-semibold text-uppercase">Total Attendances Marked</span>
+            <h2 class="fw-bold my-2 text-dark">{{ course_summary.total_records }}</h2>
+            <span class="text-muted small">Student entries</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 shadow-sm text-center">
+            <span class="text-secondary small fw-semibold text-uppercase">Present Attendances</span>
+            <h2 class="fw-bold my-2 text-success">{{ course_summary.total_present }}</h2>
+            <span class="text-success small">Present entries</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 shadow-sm text-center">
+            <span class="text-secondary small fw-semibold text-uppercase">Average Attendance</span>
+            <h2 class="fw-bold my-2 {% if (course_summary.overall_pct or 0) >= 75 %}text-success{% else %}text-danger{% endif %}">
+                {{ course_summary.overall_pct or 0 }}%
+            </h2>
+            <span class="text-muted small">Threshold: 75%</span>
+        </div>
+    </div>
+</div>
+
+<!-- Student Roster Statistics -->
+<div class="card shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-bold text-dark"><i class="bi bi-people-fill text-primary me-2"></i>Student Performance for {{ selected_course }}</span>
+        <span class="badge bg-light text-dark border">{{ student_stats|length }} Students</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Registration No.</th>
+                        <th>Student Name</th>
+                        <th>Department</th>
+                        <th>Classes Held</th>
+                        <th>Attended</th>
+                        <th>Absent</th>
+                        <th>Attendance %</th>
+                        <th>Eligibility Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in student_stats %}
+                    <tr {% if (s.attendance_pct or 0) < 75 %}class="table-danger-subtle"{% endif %}>
+                        <td><span class="fw-bold text-primary">{{ s.student_id }}</span></td>
+                        <td class="fw-semibold">{{ s.student_name }}</td>
+                        <td><small>{{ s.department }}</small></td>
+                        <td>{{ s.total_classes }}</td>
+                        <td class="text-success fw-bold">{{ s.attended_classes }}</td>
+                        <td class="text-danger fw-bold">{{ s.absent_classes }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <span class="fw-bold me-2">{{ s.attendance_pct or 0 }}%</span>
+                                <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
+                                    <div class="progress-bar {% if (s.attendance_pct or 0) >= 75 %}bg-success{% else %}bg-danger{% endif %}" 
+                                         style="width: {{ s.attendance_pct or 0 }}%;"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if (s.attendance_pct or 0) >= 75 %}
+                                <span class="badge badge-attendance-high"><i class="bi bi-check-circle me-1"></i>Eligible</span>
+                            {% else %}
+                                <span class="badge badge-attendance-low"><i class="bi bi-exclamation-triangle me-1"></i>Low Attendance (<75%)</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">No attendance data logged yet for this course.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

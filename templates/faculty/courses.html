@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}My Courses - Faculty Portal{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h3 class="fw-bold text-dark mb-1">Assigned Courses</h3>
+    <p class="text-secondary mb-0">Overview of courses under your instructional purview.</p>
+</div>
+
+<div class="row g-4">
+    {% for c in courses %}
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100 border-top border-4 border-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge bg-primary-soft text-primary fs-6">{{ c.course_id }}</span>
+                    <span class="badge bg-light text-dark border">{{ c.credits }} Credits</span>
+                </div>
+                <h4 class="fw-bold text-dark mb-1">{{ c.course_name }}</h4>
+                <p class="text-muted small mb-3">Department: {{ c.department }}</p>
+
+                <div class="row text-center border-top border-bottom py-2 my-3">
+                    <div class="col-6 border-end">
+                        <span class="d-block text-secondary small">Enrolled Students</span>
+                        <span class="fw-bold fs-5 text-dark">{{ c.enrolled_count }}</span>
+                    </div>
+                    <div class="col-6">
+                        <span class="d-block text-secondary small">Classes Conducted</span>
+                        <span class="fw-bold fs-5 text-success">{{ c.classes_conducted }}</span>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('faculty.course_students', course_id=c.course_id) }}" class="btn btn-outline-primary btn-sm flex-grow-1">
+                        <i class="bi bi-people me-1"></i> View Students
+                    </a>
+                    <a href="{{ url_for('faculty.mark_attendance', course_id=c.course_id) }}" class="btn btn-primary btn-sm flex-grow-1">
+                        <i class="bi bi-check2-square me-1"></i> Mark Attendance
+                    </a>
+                    <a href="{{ url_for('faculty.reports', course_id=c.course_id) }}" class="btn btn-outline-secondary btn-sm" title="Course Report">
+                        <i class="bi bi-bar-chart"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="alert alert-info">No courses are currently assigned to your faculty profile.</div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

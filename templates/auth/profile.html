@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Account Settings & Security — Attendance Management System{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h4 class="fw-bold text-dark mb-0">Account Profile & Security</h4>
+    <small class="text-secondary">Manage credentials, review identity profile, and update portal password.</small>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-5">
+        <div class="card p-3">
+            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-person-circle text-primary me-2"></i>Profile Information</h6>
+            <div class="mb-3">
+                <label class="form-label text-muted">Full Name</label>
+                <div class="fw-semibold text-dark">{{ user.full_name }}</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-muted">Portal Username / ID</label>
+                <div class="fw-semibold text-dark">{{ user.username }}</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-muted">Role</label>
+                <div><span class="badge bg-light text-dark border">{{ user.role|upper }}</span></div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-muted">Registered Email</label>
+                <div class="text-secondary small">{{ user.email }}</div>
+            </div>
+            <div class="pt-2 border-top text-muted small">
+                Account Created: {{ user.created_at }}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-7">
+        <div class="card p-3">
+            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-shield-lock text-primary me-2"></i>Change Password</h6>
+            
+            <form action="{{ url_for('auth.profile') }}" method="POST">
+                <div class="mb-3">
+                    <label class="form-label">Current Password *</label>
+                    <input type="password" name="current_password" class="form-control" placeholder="Enter current password" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">New Password *</label>
+                    <input type="password" name="new_password" class="form-control" placeholder="Minimum 4 characters" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Confirm New Password *</label>
+                    <input type="password" name="confirm_password" class="form-control" placeholder="Re-enter new password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-check2-circle me-1"></i> Update Password
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

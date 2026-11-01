@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Enrolled Students - {{ course.course_id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('faculty.courses') }}">Courses</a></li>
+                <li class="breadcrumb-item active">{{ course.course_id }}</li>
+            </ol>
+        </nav>
+        <h3 class="fw-bold text-dark mb-1">{{ course.course_name }} ({{ course.course_id }})</h3>
+        <p class="text-secondary mb-0">Enrolled roster and individual attendance performance.</p>
+    </div>
+    <a href="{{ url_for('faculty.mark_attendance', course_id=course.course_id) }}" class="btn btn-primary shadow-sm">
+        <i class="bi bi-check2-square me-1"></i> Mark Attendance for this Course
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-bold"><i class="bi bi-people-fill text-primary me-2"></i>Enrolled Students ({{ students|length }})</span>
+        <input type="text" id="liveTableSearch" class="form-control form-control-sm w-auto" placeholder="Search student...">
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="filterableTable">
+                <thead>
+                    <tr>
+                        <th>Registration No.</th>
+                        <th>Student Name</th>
+                        <th>Department</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Classes Attended / Held</th>
+                        <th>Attendance %</th>
+                        <th>Academic Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students %}
+                    <tr>
+                        <td><span class="fw-bold text-primary">{{ s.student_id }}</span></td>
+                        <td class="fw-bold">{{ s.student_name }}</td>
+                        <td><small>{{ s.department }}</small></td>
+                        <td><small>{{ s.email }}</small></td>
+                        <td><small>{{ s.phone or '-' }}</small></td>
+                        <td>
+                            <span class="fw-semibold text-dark">{{ s.attended_classes or 0 }}</span> / 
+                            <span class="text-muted">{{ s.total_classes or 0 }}</span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <span class="fw-bold me-2">{{ s.attendance_pct or 0 }}%</span>
+                                <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
+                                    <div class="progress-bar {% if (s.attendance_pct or 0) >= 75 %}bg-success{% else %}bg-danger{% endif %}" 
+                                         style="width: {{ s.attendance_pct or 0 }}%;"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if (s.attendance_pct or 0) >= 75 %}
+                                <span class="badge bg-success-soft text-success"><i class="bi bi-check-circle me-1"></i>Safe</span>
+                            {% else %}
+                                <span class="badge bg-danger-soft text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Below 75%</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">No students currently enrolled in this course.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

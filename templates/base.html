@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Student Attendance Management System{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+{% if session.get('logged_in') %}
+<div id="wrapper">
+    <!-- ─── SIDEBAR ─────────────────────────────────────────── -->
+    <nav id="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon"><i class="bi bi-calendar2-check"></i></div>
+            <div>
+                <div class="brand-text">Attendance</div>
+                <div class="brand-sub">Management System</div>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <ul>
+                {% if session.get('role') == 'admin' %}
+                <li class="{% if request.path == '/admin/dashboard' %}active{% endif %}">
+                    <a href="{{ url_for('admin.dashboard') }}"><i class="bi bi-grid"></i> Overview</a>
+                </li>
+                <li class="{% if '/admin/students' in request.path %}active{% endif %}">
+                    <a href="{{ url_for('admin.students') }}"><i class="bi bi-people"></i> Students</a>
+                </li>
+                <li class="{% if '/admin/faculty' in request.path %}active{% endif %}">
+                    <a href="{{ url_for('admin.faculty') }}"><i class="bi bi-person-badge"></i> Faculty</a>
+                </li>
+                <li class="{% if '/admin/courses' in request.path %}active{% endif %}">
+                    <a href="{{ url_for('admin.courses') }}"><i class="bi bi-journal-text"></i> Courses</a>
+                </li>
+                <li class="{% if '/admin/enrollments' in request.path %}active{% endif %}">
+                    <a href="{{ url_for('admin.enrollments') }}"><i class="bi bi-card-checklist"></i> Enrollments</a>
+                </li>
+                <li class="{% if '/admin/attendance' in request.path %}active{% endif %}">
+                    <a href="{{ url_for('admin.attendance') }}"><i class="bi bi-calendar-check"></i> Attendance</a>
+                </li>
+                <li class="{% if '/reports' in request.path %}active{% endif %}">
+                    <a href="{{ url_for('reports.index') }}"><i class="bi bi-bar-chart"></i> Reports</a>
+                </li>
+
+                {% elif session.get('role') == 'faculty' %}
+                <li class="{% if request.path == '/faculty/dashboard' %}active{% endif %}">
+                    <a href="{{ url_for('faculty.dashboard') }}"><i class="bi bi-grid"></i> Overview</a>
+                </li>
+                <li class="{% if '/faculty/courses' in request.path %}active{% endif %}">
+                    <a href="{{ url_for('faculty.courses') }}"><i class="bi bi-journal-text"></i> My Courses</a>
+                </li>
+                <li class="{% if '/faculty/mark-attendance' in request.path %}active{% endif %}">
+                    <a href="{{ url_for('faculty.mark_attendance') }}"><i class="bi bi-check2-square"></i> Mark Attendance</a>
+                </li>
+                <li class="{% if '/faculty/history' in request.path %}active{% endif %}">
+                    <a href="{{ url_for('faculty.history') }}"><i class="bi bi-clock-history"></i> History</a>
+                </li>
+                <li class="{% if '/faculty/leave-requests' in request.path %}active{% endif %}">
+                    <a href="{{ url_for('faculty.leave_requests') }}"><i class="bi bi-envelope-paper"></i> Leave Approvals</a>
+                </li>
+                <li class="{% if '/faculty/reports' in request.path %}active{% endif %}">
+                    <a href="{{ url_for('faculty.reports') }}"><i class="bi bi-graph-up"></i> Reports</a>
+                </li>
+
+                {% elif session.get('role') == 'student' %}
+                <li class="{% if request.path == '/student/dashboard' %}active{% endif %}">
+                    <a href="{{ url_for('student.dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+                </li>
+                <li class="{% if '/student/courses' in request.path %}active{% endif %}">
+                    <a href="{{ url_for('student.courses') }}"><i class="bi bi-journal-check"></i> Courses</a>
+                </li>
+                <li class="{% if '/student/history' in request.path %}active{% endif %}">
+                    <a href="{{ url_for('student.history') }}"><i class="bi bi-calendar3"></i> History</a>
+                </li>
+                <li class="{% if '/student/simulator' in request.path %}active{% endif %}">
+                    <a href="{{ url_for('student.simulator') }}"><i class="bi bi-calculator"></i> Bunk & Simulator</a>
+                </li>
+                <li class="{% if '/student/leave' in request.path %}active{% endif %}">
+                    <a href="{{ url_for('student.leave') }}"><i class="bi bi-envelope-paper"></i> Apply Leave / OD</a>
+                </li>
+                <li class="{% if '/student/notifications' in request.path %}active{% endif %}">
+                    <a href="{{ url_for('student.notifications') }}"><i class="bi bi-bell"></i> Notices</a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <div class="sidebar-footer">
+            <a href="{{ url_for('auth.logout') }}" class="signout-btn">
+                <i class="bi bi-box-arrow-right"></i> Sign Out
+            </a>
+            <div class="credits">DBMS Project &bull; 2026</div>
+        </div>
+    </nav>
+
+    <!-- ─── MAIN CONTENT ────────────────────────────────────── -->
+    <div class="main-content">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="d-flex align-items-center">
+                <button class="btn btn-sm btn-outline-secondary me-3 d-md-none" id="sidebarCollapse">
+                    <i class="bi bi-list"></i>
+                </button>
+                <span class="page-title">Student Attendance Management System</span>
+            </div>
+            <div class="user-info">
+                <a href="{{ url_for('auth.profile') }}" class="text-decoration-none text-end d-flex align-items-center me-2" title="Account & Password">
+                    <span class="user-name">{{ session.get('full_name') }}</span>
+                    <span class="user-role ms-2">
+                        {{ session.get('role')|upper }}{% if session.get('reference_id') %} &middot; {{ session.get('reference_id') }}{% endif %}
+                    </span>
+                    <i class="bi bi-gear ms-2 text-muted" style="font-size: 0.9rem;"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Page Content -->
+        <div class="content-area">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show py-2 px-3 small" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" style="font-size:0.6rem;" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+
+        <!-- Footer -->
+        <div class="app-footer">
+            <span>Student Attendance Management System &bull; DBMS Project</span>
+            <span>Marthav &middot; Saketh &middot; Reeyan</span>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- Non-logged-in pages (login) render without sidebar -->
+<div>
+    {% block content_nosidebar %}{% endblock %}
+</div>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

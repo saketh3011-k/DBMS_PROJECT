@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Bunk Calculator & Target Simulator — Student Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold text-dark mb-0">Attendance Simulator & Bunk Calculator</h4>
+        <small class="text-secondary">Simulate future attendance percentages, target thresholds, and calculate safe margin limits.</small>
+    </div>
+    <span class="badge bg-light text-muted border">Minimum Target: 75%</span>
+</div>
+
+<!-- Overview Cards for Bunk vs Recovery -->
+<div class="row g-3 mb-4">
+    {% for c in courses %}
+    <div class="col-md-6 col-lg-3">
+        <div class="card h-100 p-3">
+            <span class="badge bg-light text-dark border align-self-start mb-2">{{ c.course_id }}</span>
+            <div class="fw-bold text-dark text-truncate" title="{{ c.course_name }}">{{ c.course_name }}</div>
+            <div class="fs-4 fw-bold my-2 {% if c.pct >= 75 %}text-success{% else %}text-danger{% endif %}">
+                {{ c.pct }}%
+            </div>
+            <div class="small text-muted mb-2">
+                Attended: <strong class="text-dark">{{ c.attended }}</strong> / {{ c.total }} held
+            </div>
+            <div class="mt-auto pt-2 border-top">
+                {% if c.pct >= 75 %}
+                    <span class="badge bg-success-soft d-block text-center py-1">
+                        <i class="bi bi-shield-check me-1"></i> Safe to miss: <strong>{{ c.safe_bunk }} class(es)</strong>
+                    </span>
+                {% else %}
+                    <span class="badge bg-danger-soft d-block text-center py-1">
+                        <i class="bi bi-exclamation-triangle me-1"></i> Attend next: <strong>{{ c.needed_75 }} class(es)</strong>
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Interactive Interactive What-If Simulator Card -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-calculator me-1"></i> Interactive What-If Simulator</span>
+        <small class="text-muted">Test any attendance scenario in real time</small>
+    </div>
+    <div class="card-body">
+        <div class="row g-4 align-items-center">
+            <div class="col-md-4">
+                <label class="form-label">Select Course</label>
+                <select class="form-select" id="simCourseSelect" onchange="runSimulation()">
+                    {% for c in courses %}
+                    <option value="{{ c.course_id }}" data-att="{{ c.attended }}" data-tot="{{ c.total }}" data-pct="{{ c.pct }}">
+                        {{ c.course_id }} — {{ c.course_name }} ({{ c.pct }}%)
+                    </option>
+                    {% endfor %}
+                </select>
+
+                <div class="p-3 bg-light rounded mt-3">
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>Classes Attended So Far:</span>
+                        <strong id="simCurrentAtt" class="text-dark">0</strong>
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>Classes Conducted So Far:</span>
+                        <strong id="simCurrentTot" class="text-dark">0</strong>
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted">
+                        <span>Current Attendance Rate:</span>
+                        <strong id="simCurrentPct" class="text-dark">0%</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <label class="form-label">Additional Classes You Will <strong class="text-success">Attend</strong></label>
+                    <input type="number" id="simAttendInput" class="form-control" value="4" min="0" max="60" oninput="runSimulation()">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Additional Classes You Will <strong class="text-danger">Miss (Bunk)</strong></label>
+                    <input type="number" id="simMissInput" class="form-control" value="0" min="0" max="60" oninput="runSimulation()">
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="p-4 border rounded text-center bg-white">
+                    <div class="small text-uppercase text-muted fw-semibold">Projected Attendance</div>
+                    <div id="simProjectedResult" class="display-5 fw-bold my-2 text-primary">--%</div>
+                    <div id="simStatusBadge" class="badge bg-light text-dark mb-2">Calculating...</div>
+                    <div id="simExplanation" class="small text-muted">Based on your simulated inputs</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Formula Documentation for Viva / Faculty Review -->
+<div class="card">
+    <div class="card-header">
+        <span>Mathematical Calculations & Institutional Logic</span>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 small text-secondary">
+            <div class="col-md-6">
+                <div class="p-3 bg-light rounded h-100">
+                    <strong class="text-dark d-block mb-1">1. Safe Bunk Margin Formula (&ge; 75%)</strong>
+                    <code>Safe Bunks = floor((Attended - 0.75 * Total) / 0.75)</code>
+                    <p class="mb-0 mt-2 text-muted">Gives the exact maximum number of consecutive lectures a student can skip without dropping below 75%.</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="p-3 bg-light rounded h-100">
+                    <strong class="text-dark d-block mb-1">2. Shortage Recovery Formula (&lt; 75%)</strong>
+                    <code>Classes Needed = ceil((0.75 * Total - Attended) / 0.25)</code>
+                    <p class="mb-0 mt-2 text-muted">Gives the minimum consecutive lectures a student must attend to lift their ratio back to safe standing.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function runSimulation() {
+    const sel = document.getElementById('simCourseSelect');
+    if (!sel || !sel.options[sel.selectedIndex]) return;
+    const opt = sel.options[sel.selectedIndex];
+
+    const currentAtt = parseInt(opt.getAttribute('data-att') || '0');
+    const currentTot = parseInt(opt.getAttribute('data-tot') || '0');
+    const currentPct = parseFloat(opt.getAttribute('data-pct') || '0');
+
+    document.getElementById('simCurrentAtt').textContent = currentAtt;
+    document.getElementById('simCurrentTot').textContent = currentTot;
+    document.getElementById('simCurrentPct').textContent = currentPct + '%';
+
+    const addAttend = parseInt(document.getElementById('simAttendInput').value || '0');
+    const addMiss = parseInt(document.getElementById('simMissInput').value || '0');
+
+    const newAtt = currentAtt + addAttend;
+    const newTot = currentTot + addAttend + addMiss;
+
+    const resultEl = document.getElementById('simProjectedResult');
+    const badgeEl = document.getElementById('simStatusBadge');
+    const expEl = document.getElementById('simExplanation');
+
+    if (newTot === 0) {
+        resultEl.textContent = '0%';
+        badgeEl.className = 'badge bg-light text-dark';
+        badgeEl.textContent = 'No Sessions';
+        return;
+    }
+
+    const projectedPct = ((newAtt / newTot) * 100).toFixed(1);
+    resultEl.textContent = projectedPct + '%';
+
+    if (projectedPct >= 75.0) {
+        resultEl.className = 'display-5 fw-bold my-2 text-success';
+        badgeEl.className = 'badge bg-success-soft py-1 px-2';
+        badgeEl.innerHTML = '<i class="bi bi-check-circle me-1"></i> Eligible for Exams';
+        expEl.textContent = `You will have attended ${newAtt} out of ${newTot} sessions.`;
+    } else {
+        resultEl.className = 'display-5 fw-bold my-2 text-danger';
+        badgeEl.className = 'badge bg-danger-soft py-1 px-2';
+        badgeEl.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Shortage Warning';
+        expEl.textContent = `You will be ${(75.0 - projectedPct).toFixed(1)}% below the 75% threshold.`;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', runSimulation);
+</script>
+{% endblock %}
